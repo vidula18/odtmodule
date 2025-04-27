@@ -1,0 +1,36 @@
+from machine import Pin, ADC, PWM
+import time
+
+# Moisture Sensor on GPIO32
+sensor = ADC(Pin(32))
+sensor.atten(ADC.ATTN_11DB)
+sensor.width(ADC.WIDTH_10BIT)
+
+# Servo on GPIO14
+servo = PWM(Pin(14), freq=50)
+
+# Moisture range (adjust after testing)
+dry_value = 1000
+wet_value = 300
+threshold = 600
+
+def map_value(x, in_min, in_max, out_min, out_max):
+    return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
+
+def set_servo_angle(angle):
+    duty = int((angle / 180) * 102 + 26)
+    servo.duty(duty)
+
+while True:
+    raw = sensor.read()
+    moisture_percent = map_value(raw, dry_value, wet_value, 0, 100)
+    moisture_percent = max(0, min(100, moisture_percent))
+
+    print("Soil Moisture:", moisture_percent, "%")
+
+    if moisture_percent > 30:
+        set_servo_angle(90)
+    else:
+        set_servo_angle(0)
+
+    time.sleep(1)
